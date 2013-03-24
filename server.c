@@ -2,11 +2,15 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-void acceptFile(int socketHandle); /* function prototype */
+#define BUFFER_LENGTH (10 * 1024)
+
+void acceptFile(int socketHandle);
 
 void fail(const char* message) {
     fprintf(stderr, "%s\n", message);
@@ -65,7 +69,9 @@ int main(int argc, char *argv[])
 void acceptFile(int socketHandle) {
     int fileLen, nameLen;
     int bytesRead, bytesWritten;
-    char buffer[10 * 1024];
+    int fileHandle;
+    char buffer[BUFFER_LENGTH + 1];
+    char filename[BUFFER_LENGTH + 1];
 
     bytesRead = read(socketHandle, &nameLen, sizeof(nameLen));
     if (bytesRead != sizeof(nameLen)) {
@@ -73,12 +79,16 @@ void acceptFile(int socketHandle) {
     }
     printf("Filename length = %d\n", nameLen);
 
-    bzero(buffer, 10 * 1024);
+    bzero(buffer, sizeof(BUFFER_LENGTH));
     bytesRead = read(socketHandle, buffer, nameLen);
     if (bytesRead != nameLen) {
         fail("Can't read filename");
     }
     printf("Filename = %s\n", buffer);
+
+    bzero(filename, sizeof(filename)); 
+    strcpy(filename, "accepted_files/");
+    strcat(filename, buffer);
 
     bytesRead = read(socketHandle, &fileLen, sizeof(fileLen));
     if (bytesRead != sizeof(fileLen)) {
@@ -86,6 +96,28 @@ void acceptFile(int socketHandle) {
     }
     printf("File length = %d\n", fileLen);
     
+    fileHandle = open(filename, O_WRONLY | O_CREAT | O_TRUNC, S_IROTH | S_IWOTH);
+    if (fileHandle < 0) {
+        fail("Can't open file to write");
+    }
+
+    while (fileLen > 0) {
+        bzero(buffer, sizeof(buffer));
+
+        bytesRead = read(socketHandle, buffer, BUFFER_LENGTH);
+        if (bytesRead < 0) {
+            fail("Can't read file from socket");
+        }
+
+        bytesWritten = write(fileHandle, buffer, bytesRead);
+        if (bytesWritten < 0) {
+            fail("Can't write data to file");
+        }
+
+        fileLen -= bytesRead;
+    }
+    close(fileHandle);
+
     bytesWritten = write(socketHandle, "Transmission finished", 23);
     if (bytesWritten < 0) {
         fail("Transmission is not finished really. Can't write final message");

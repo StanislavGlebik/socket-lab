@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -9,7 +10,6 @@
 #include <netdb.h> 
 
 #define BUFFER_LENGTH (10 * 1024)
-
 
 void fail(const char* message) {
     fprintf(stderr, "%s\n", message);
@@ -25,12 +25,14 @@ int getFileLength(const char* filename) {
 int main(int argc, char *argv[])
 {
     int sockfd, portno;
-    int file_length, filename_length;
+    int fileLength, filename_length;
     int bytesWritten, bytesRead;
+    int bytesToSend;
+    int fileHandle;
     struct sockaddr_in serv_addr;
     struct hostent *server;
 
-    char buffer[BUFFER_LENGTH];
+    char buffer[BUFFER_LENGTH + 1];
     if (argc < 4) {
         sprintf(buffer, "Usage: %s hostname port filename", argv[0]);
         fail(buffer);
@@ -41,7 +43,7 @@ int main(int argc, char *argv[])
         fail(buffer);
     }
     filename_length = strlen(argv[3]);
-    file_length = getFileLength(argv[3]);
+    fileLength = getFileLength(argv[3]);
 
     portno = atoi(argv[2]);
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -74,9 +76,30 @@ int main(int argc, char *argv[])
         fail("Error while sending filename");
     }
 
-    bytesWritten = write(sockfd, &file_length, sizeof(int));
+    bytesWritten = write(sockfd, &fileLength, sizeof(int));
     if (bytesWritten < 0) { 
         fail("Error while sending length of file");
+    }
+
+    fileHandle = open(argv[3], O_RDONLY);
+    if (fileHandle < 0) {
+        fail("Can't open file for reading");
+    }
+
+    while (fileLength > 0) {
+       bzero(buffer, sizeof(buffer));
+
+       bytesToSend = read(fileHandle, buffer, BUFFER_LENGTH);
+       if (bytesToSend < 0) {
+           fail("Can't read file");
+       }
+
+       bytesWritten = write(sockfd, buffer, bytesToSend);
+       if (bytesWritten < 0) {
+           fail("Can't write file to socket");
+       }
+
+       fileLength -= bytesToSend;
     }
 
     bzero(buffer, BUFFER_LENGTH);
@@ -88,3 +111,4 @@ int main(int argc, char *argv[])
     close(sockfd);
     return 0;
 }
+
