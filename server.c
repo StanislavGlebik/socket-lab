@@ -12,7 +12,8 @@
 
 void acceptFile(int socketHandle);
 
-void fail(const char* message) {
+void fail(const char* message)
+{
     fprintf(stderr, "%s\n", message);
     exit(1);
 }
@@ -66,22 +67,23 @@ int main(int argc, char *argv[])
     return 0; /* we never get here */
 }
 
-void acceptFile(int socketHandle) {
-    int fileLen, nameLen;
-    int bytesRead, bytesWritten;
-    int fileHandle;
+void acceptFile(int socketHandle)
+{
+    int file_length, name_length;
+    int bytes_read, bytes_written;
+    int file_handle;
     char buffer[BUFFER_LENGTH + 1];
     char filename[BUFFER_LENGTH + 1];
 
-    bytesRead = read(socketHandle, &nameLen, sizeof(nameLen));
-    if (bytesRead != sizeof(nameLen)) {
+    bytes_read = read(socketHandle, &name_length, sizeof(name_length));
+    if (bytes_read != sizeof(name_length)) {
         fail("Can't read filename length");
     }
-    printf("Filename length = %d\n", nameLen);
+    printf("Filename length = %d\n", name_length);
 
     bzero(buffer, sizeof(BUFFER_LENGTH));
-    bytesRead = read(socketHandle, buffer, nameLen);
-    if (bytesRead != nameLen) {
+    bytes_read = read(socketHandle, buffer, name_length);
+    if (bytes_read != name_length) {
         fail("Can't read filename");
     }
     printf("Filename = %s\n", buffer);
@@ -90,37 +92,37 @@ void acceptFile(int socketHandle) {
     strcpy(filename, "accepted_files/");
     strcat(filename, buffer);
 
-    bytesRead = read(socketHandle, &fileLen, sizeof(fileLen));
-    if (bytesRead != sizeof(fileLen)) {
+    bytes_read = read(socketHandle, &file_length, sizeof(file_length));
+    if (bytes_read != sizeof(file_length)) {
         fail("Can't read file length");
     }
-    printf("File length = %d\n", fileLen);
+    printf("File length = %d\n", file_length);
     
-    fileHandle = open(filename, O_WRONLY | O_CREAT | O_TRUNC, S_IWRITE | S_IREAD);
-    if (fileHandle < 0) {
+    file_handle = open(filename, O_WRONLY | O_CREAT | O_TRUNC, S_IWRITE | S_IREAD);
+    if (file_handle < 0) {
         fail("Can't open file to write");
     }
 
-    while (fileLen > 0) {
+    while (file_length > 0) {
         bzero(buffer, sizeof(buffer));
 
-        bytesRead = read(socketHandle, buffer, BUFFER_LENGTH);
-        if (bytesRead < 0) {
+        bytes_read = read(socketHandle, buffer, BUFFER_LENGTH);
+        if (bytes_read < 0) {
             fail("Can't read file from socket");
         }
 
-        bytesWritten = write(fileHandle, buffer, bytesRead);
-        if (bytesWritten < 0) {
+        bytes_written = write(file_handle, buffer, bytes_read);
+        if (bytes_written < 0) {
             fail("Can't write data to file");
         }
 
-        fileLen -= bytesRead;
+        file_length -= bytes_read;
     }
-    close(fileHandle);
+    close(file_handle);
     printf("File %s is transmitted\n", filename);
 
-    bytesWritten = write(socketHandle, "Transmission finished", 23);
-    if (bytesWritten < 0) {
+    bytes_written = write(socketHandle, "Transmission finished", 23);
+    if (bytes_written < 0) {
         fail("Transmission is not finished really. Can't write final message");
     }
 }
