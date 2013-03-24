@@ -96,7 +96,7 @@ void acceptFile(int socketHandle) {
     }
     printf("File length = %d\n", fileLen);
     
-    fileHandle = open(filename, O_WRONLY | O_CREAT | O_TRUNC, S_IROTH | S_IWOTH);
+    fileHandle = open(filename, O_WRONLY | O_CREAT | O_TRUNC, S_IWRITE | S_IREAD);
     if (fileHandle < 0) {
         fail("Can't open file to write");
     }
@@ -117,6 +117,7 @@ void acceptFile(int socketHandle) {
         fileLen -= bytesRead;
     }
     close(fileHandle);
+    printf("File %s is transmitted\n", filename);
 
     bytesWritten = write(socketHandle, "Transmission finished", 23);
     if (bytesWritten < 0) {
