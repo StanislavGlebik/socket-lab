@@ -1,23 +1,5 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h> 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <pthread.h>
-
-#define BUFFER_LENGTH (10 * 1024)
-#define SERVER_TYPE 1 // 0 - for process, 1 - for threads
-
-typedef struct _socket_plus_filename {
-    int socketHandle;
-    const char * filename;
-} socket_plus_filename, *psocket_plus_filename;
-
-void transmitFile(int socketHandle, const char * filename);
+#include "server_utils.h"
+#include "file_transmission.h"
 
 void * threadFunction(void * pointer) {
     psocket_plus_filename p = (psocket_plus_filename) pointer;
@@ -25,18 +7,6 @@ void * threadFunction(void * pointer) {
     printf("%s\n", "Thread was created");
     transmitFile(p->socketHandle, p->filename);
     return 0;
-}
-
-void fail(const char* message)
-{
-    fprintf(stderr, "%s\n", message);
-    exit(1);
-}
-
-int getFileLength(const char* filename) {
-    struct stat st;
-    stat(filename, &st);
-    return st.st_size;
 }
 
 int main(int argc, char *argv[])
@@ -104,61 +74,4 @@ int main(int argc, char *argv[])
     } /* end of while */
     close(sockfd);
     return 0; /* we never get here */
-}
-
-void transmitFile(int sockfd, const char * filename)
-{
-    int fileLength, filename_length, bytesWritten, fileHandle;
-    int bytesToSend, bytesRead;    
-    char buffer[BUFFER_LENGTH + 1];
-    if (access(filename, F_OK) == -1) {
-        sprintf(buffer, "Error: file %s does not exist", filename);
-        fail(buffer);
-    }
-    filename_length = strlen(filename);
-    fileLength = getFileLength(filename);
-
-    bytesWritten = write(sockfd, &filename_length, sizeof(int));
-    if (bytesWritten < 0) { 
-        fail("Error while sending length of filename");
-    }
-
-    bytesWritten = write(sockfd, filename, strlen(filename));
-    if (bytesWritten < 0) { 
-        fail("Error while sending filename");
-    }
-
-    bytesWritten = write(sockfd, &fileLength, sizeof(int));
-    if (bytesWritten < 0) { 
-        fail("Error while sending length of file");
-    }
-
-    fileHandle = open(filename, O_RDONLY);
-    if (fileHandle < 0) {
-        fail("Can't open file for reading");
-    }
-
-    while (fileLength > 0) {
-       bzero(buffer, sizeof(buffer));
-
-       bytesToSend = read(fileHandle, buffer, BUFFER_LENGTH);
-       if (bytesToSend < 0) {
-           fail("Can't read file");
-       }
-
-       bytesWritten = write(sockfd, buffer, bytesToSend);
-       if (bytesWritten < 0) {
-           fail("Can't write file to socket");
-       }
-
-       fileLength -= bytesToSend;
-    }
-
-    bzero(buffer, BUFFER_LENGTH);
-    bytesRead = read(sockfd, buffer, BUFFER_LENGTH - 1);
-    if (bytesRead < 0) { 
-        fail("Error while getting final message");
-    }
-    printf("%s\n",buffer);
-    close(sockfd);
 }
