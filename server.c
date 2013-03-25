@@ -60,16 +60,20 @@ int main(int argc, char *argv[])
         if (newsockfd < 0) {
             fail("Error while accepting connection");
         }
-        pid = fork();
-        if (pid < 0) {
-            fail("Error while forking new process");
-        }
-        if (pid == 0)  {
-            close(sockfd);
-            transmitFile(newsockfd, argv[2]);
-            exit(0);
-        } else { 
-            close(newsockfd);
+        if (SERVER_TYPE == 0) {//processes
+            pid = fork();
+            if (pid < 0) {
+                fail("Error while forking new process");
+            }
+            if (pid == 0)  {
+                close(sockfd);
+                transmitFile(newsockfd, argv[2]);
+                exit(0);
+            } else { 
+                close(newsockfd);
+            }
+        } else { //threads
+            
         }
     } /* end of while */
     close(sockfd);
