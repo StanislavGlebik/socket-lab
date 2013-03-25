@@ -3,7 +3,7 @@ all: clean server client
 debug: clean server_debug client_debug
 
 server:
-	gcc server.c -o server
+	gcc server.c -pthread -o server
 
 client:
 	gcc client.c -o client
