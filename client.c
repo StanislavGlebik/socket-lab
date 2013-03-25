@@ -18,12 +18,6 @@ void fail(const char* message) {
     exit(1);
 }
 
-int getfilelength(const char* filename) {
-    struct stat st;
-    stat(filename, &st);
-    return st.st_size;
-}
-
 int main(int argc, char *argv[])
 {
     int sockfd, portno;
@@ -55,7 +49,8 @@ int main(int argc, char *argv[])
     bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
     serv_addr.sin_port = htons(portno);
 
-    if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) {
+
+    if ((errorType = connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)) {
         fail("Error while connecting");
     }
 

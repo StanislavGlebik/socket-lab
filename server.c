@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
         }
         if (pid == 0)  {
             close(sockfd);
-            transmitFile(newsockfd, argv[3]);
+            transmitFile(newsockfd, argv[2]);
             exit(0);
         } else { 
             close(newsockfd);
