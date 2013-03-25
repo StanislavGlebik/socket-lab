@@ -9,6 +9,8 @@
 #include <netinet/in.h>
 
 #define BUFFER_LENGTH (10 * 1024)
+#define SERVER_TYPE_THREADS 0
+#define SERVER_TYPE_PROCESSES 1
 
 void acceptFile(int socketHandle);
 
@@ -20,7 +22,7 @@ void fail(const char* message)
 
 int main(int argc, char *argv[])
 {
-    int sockfd, newsockfd, portno, pid;
+    int sockfd, newsockfd, portno, pid, server_type;
     socklen_t clilen;
     struct sockaddr_in serv_addr, cli_addr;
 
@@ -34,6 +36,15 @@ int main(int argc, char *argv[])
 
     bzero((char *) &serv_addr, sizeof(serv_addr));
     portno = atoi(argv[1]);
+    if (!strcmp(argv[2], "-t")|| !(strcmp(argv[2], "--threads"))
+                                    || !(strcmp(argv[2], ""))) {
+        server_type = 0;
+    } else if (!strcmp(argv[2], "-p") || !strcmp(argv[2], "--processes")) {
+        server_type = 1;
+    } else {
+        fail("Unknown third parameter! Should be -p or -t");
+    }
+
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(portno);
