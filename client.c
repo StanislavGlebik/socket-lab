@@ -38,11 +38,6 @@ int main(int argc, char *argv[])
         fail(buffer);
     }
 
-    if (access(argv[3], F_OK) == -1) {
-        sprintf(buffer, "Error: file %s does not exist", argv[3]);
-        fail(buffer);
-    }
-
     portno = atoi(argv[2]);
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
